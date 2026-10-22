@@ -1,0 +1,51 @@
+# ==============================
+# Node & Frontend
+# ==============================
+**/node_modules/
+**/dist/
+**/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.local
+
+# ==============================
+# .NET & Backend
+# ==============================
+**/bin/
+**/obj/
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+appsettings.Development.json
+
+# ==============================
+# Database & Data
+# ==============================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ==============================
+# Build & Publish Artifacts
+# ==============================
+publish_framework/
+publish_selfcontained/
+somee_publish/
+somee_publish_framework/
+*.zip
+
+# ==============================
+# Editor & OS files
+# ==============================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
