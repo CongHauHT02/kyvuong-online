@@ -1,8 +1,5 @@
 import * as signalR from '@microsoft/signalr';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
-  ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
-  : '';
+import { getBackendUrl } from './apiService';
 
 class SignalRService {
   constructor() {
@@ -50,8 +47,9 @@ class SignalRService {
     this.startPromise = (async () => {
       try {
         if (!this.connection) {
+          const hubUrl = `${getBackendUrl()}/gameHub`;
           this.connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${BACKEND_URL}/gameHub`, {
+            .withUrl(hubUrl, {
               // Support WebSockets with graceful fallback to ServerSentEvents and LongPolling
               transport:
                 signalR.HttpTransportType.WebSockets |

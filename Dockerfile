@@ -16,3 +16,4 @@ ENV ASPNETCORE_URLS=http://+:5235
 EXPOSE 5235
 
 ENTRYPOINT ["dotnet", "XiangqiBackend.dll"]
+

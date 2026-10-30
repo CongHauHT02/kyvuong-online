@@ -1,8 +1,16 @@
 // REST API client for Xiangqi .NET 9.0 Backend
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
-  ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
-  : '';
+export const getBackendUrl = () => {
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://kyvuong-online.onrender.com';
+  }
+  return '';
+};
+
+const BACKEND_URL = getBackendUrl();
 
 const API_BASE = `${BACKEND_URL}/api/game`;
 const AUTH_BASE = `${BACKEND_URL}/api/auth`;
