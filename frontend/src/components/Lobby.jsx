@@ -495,6 +495,21 @@ export default function Lobby({
                           <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>
                             {room.roomName}
                           </span>
+                          {room.isHandicap && (
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                color: '#f87171',
+                                border: '1px solid rgba(239, 68, 68, 0.4)'
+                              }}
+                            >
+                              ⚡ Chấp Cờ
+                            </span>
+                          )}
                           <span
                             style={{
                               fontSize: '0.68rem',
@@ -525,7 +540,10 @@ export default function Lobby({
                       <div>
                         {canJoin ? (
                           <button
-                            onClick={() => onJoinRoom(room.roomId)}
+                            onClick={() => {
+                              const pName = currentUser?.displayName || localStorage.getItem('xiangqi_player_name');
+                              onJoinRoom(room.roomId, pName, currentUser?.username);
+                            }}
                             className="btn btn-gold"
                             style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
                           >
@@ -534,7 +552,10 @@ export default function Lobby({
                           </button>
                         ) : (
                           <button
-                            onClick={() => onJoinRoom(room.roomId)}
+                            onClick={() => {
+                              const pName = currentUser?.displayName || localStorage.getItem('xiangqi_player_name');
+                              onJoinRoom(room.roomId, pName, currentUser?.username);
+                            }}
                             className="btn btn-dark"
                             style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
                           >

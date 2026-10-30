@@ -14,6 +14,8 @@ public class GameRoom
     public GameState GameState { get; set; } = new();
     public bool IsAiGame { get; set; }
     public string AiDifficulty { get; set; } = "Medium";
+    public bool IsHandicap { get; set; }
+    public List<Position> HandicapRemovedPositions { get; set; } = [];
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
 }

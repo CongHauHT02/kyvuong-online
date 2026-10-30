@@ -126,13 +126,24 @@ public class GameHub(
     // ==========================================
     public async Task CreateRoom(CreateRoomRequest request)
     {
+        if (request.IsHandicap && request.RemovedPositions != null)
+        {
+            if (!rulesService.ValidateHandicapConfiguration(request.RemovedPositions, out var error))
+            {
+                await Clients.Caller.SendAsync("Error", error ?? "Cấu hình chấp cờ không hợp lệ!");
+                return;
+            }
+        }
+
         var room = roomManager.CreateRoom(
             request.PlayerName,
             request.Username,
             request.RoomName,
             request.PlayAsRed,
             request.IsAiGame,
-            request.AiDifficulty
+            request.AiDifficulty,
+            request.IsHandicap,
+            request.RemovedPositions
         );
 
         if (request.PlayAsRed)
@@ -154,7 +165,9 @@ public class GameHub(
             room.IsAiGame,
             room.AiDifficulty,
             RedPlayerName = room.RedPlayerName,
-            BlackPlayerName = room.BlackPlayerName
+            BlackPlayerName = room.BlackPlayerName,
+            IsHandicap = room.IsHandicap,
+            HandicapRemovedPositions = room.HandicapRemovedPositions
         });
 
         // Broadcast updated room list to all lobby clients
@@ -196,7 +209,9 @@ public class GameHub(
             BlackPlayerName = room.BlackPlayerName,
             room.GameState,
             room.IsAiGame,
-            room.AiDifficulty
+            room.AiDifficulty,
+            IsHandicap = room.IsHandicap,
+            HandicapRemovedPositions = room.HandicapRemovedPositions
         });
 
         await Clients.Group(room.RoomId).SendAsync("PlayerJoined", new
@@ -204,11 +219,31 @@ public class GameHub(
             PlayerName = request.PlayerName,
             Role = role,
             RedPlayerName = room.RedPlayerName,
-            BlackPlayerName = room.BlackPlayerName
+            BlackPlayerName = room.BlackPlayerName,
+            IsHandicap = room.IsHandicap
         });
 
         // Broadcast updated room list to lobby
         await Clients.All.SendAsync("RoomsUpdated", roomManager.GetActiveRooms());
+    }
+
+    public async Task SetPlayerReady(string roomId, string role, string playerName)
+    {
+        var room = roomManager.GetRoom(roomId);
+        if (room == null) return;
+
+        await Clients.Group(room.RoomId).SendAsync("PlayerReady", new
+        {
+            RoomId = roomId,
+            Role = role,
+            PlayerName = playerName
+        });
+
+        await Clients.Group(room.RoomId).SendAsync("ChatMessageReceived", new ChatMessageDto(
+            "Hệ Thống",
+            $"✅ {playerName} đã xác nhận: ĐỒNG Ý BÀN CỜ CHẤP & SẴN SÀNG THI ĐẤU!",
+            DateTime.UtcNow
+        ));
     }
 
     public async Task MakeMove(MakeMoveRequest request)

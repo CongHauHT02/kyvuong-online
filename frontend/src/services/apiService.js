@@ -59,11 +59,11 @@ export const apiService = {
     return res.json();
   },
 
-  async createRoom(playerName, username, roomName, playAsRed = true, isAiGame = false, aiDifficulty = 'Medium') {
+  async createRoom(playerName, username, roomName, playAsRed = true, isAiGame = false, aiDifficulty = 'Medium', isHandicap = false, removedPositions = []) {
     const res = await fetch(`${API_BASE}/rooms`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ playerName, username, roomName, playAsRed, isAiGame, aiDifficulty })
+      body: JSON.stringify({ playerName, username, roomName, playAsRed, isAiGame, aiDifficulty, isHandicap, removedPositions })
     });
     if (!res.ok) throw new Error('Không thể tạo phòng mới');
     return res.json();

@@ -50,6 +50,8 @@ export default function App() {
   const [blackPlayerName, setBlackPlayerName] = useState('Kỳ Thủ Đen');
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [guestHandicapConfirmed, setGuestHandicapConfirmed] = useState(false);
+  const [opponentReady, setOpponentReady] = useState(false);
 
   // 1. Initial Load: Fetch new game and proactively warm up SignalR connection
   const loadNewGame = useCallback(async () => {
@@ -104,10 +106,33 @@ export default function App() {
       }
     };
 
-    const handlePlayerJoined = ({ playerName, role }) => {
+    const handlePlayerJoined = (data) => {
+      if (data.redPlayerName) setRedPlayerName(data.redPlayerName);
+      if (data.blackPlayerName) setBlackPlayerName(data.blackPlayerName);
+      if (data.role === 'Black' && data.playerName) setBlackPlayerName(data.playerName);
+      if (data.role === 'Red' && data.playerName) setRedPlayerName(data.playerName);
+
+      audio.playCheckSound();
       setChatMessages(prev => [
         ...prev,
-        { sender: 'Hệ Thống', message: `${playerName} đã tham gia với vai trò ${role === 'Red' ? 'Bên Đỏ' : 'Bên Đen'}!`, timestamp: new Date() }
+        {
+          sender: 'Hệ Thống',
+          message: `⚔️ ${data.playerName} đã tham gia với vai trò ${data.role === 'Red' ? 'Bên Đỏ' : 'Bên Đen'}!${data.isHandicap ? ' (Chế Độ Chấp Cờ)' : ''}`,
+          timestamp: new Date()
+        }
+      ]);
+    };
+
+    const handlePlayerReady = (data) => {
+      audio.playCheckSound();
+      setOpponentReady(true);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          sender: 'Hệ Thống',
+          message: `✅ ${data.playerName} (${data.role === 'Black' ? 'Bên Đen' : 'Bên Đỏ'}) đã xem bàn cờ chấp và xác nhận: SẴN SÀNG THI ĐẤU!`,
+          timestamp: new Date()
+        }
       ]);
     };
 
@@ -154,11 +179,29 @@ export default function App() {
       setOnlineRole(data.role);
       setIsFlipped(data.role === 'Black');
       setGameState(data.gameState);
-      setRedPlayerName(data.redPlayerName);
-      setBlackPlayerName(data.blackPlayerName);
+      setRedPlayerName(data.redPlayerName || 'Kỳ Thủ Đỏ');
+      setBlackPlayerName(data.blackPlayerName || 'Kỳ Thủ Đen');
       setGameMode('online');
       setIsOnlineModalOpen(false);
       setViewMode('game');
+
+      if (data.role === 'Red' || !data.isHandicap) {
+        setGuestHandicapConfirmed(true);
+      } else {
+        setGuestHandicapConfirmed(false);
+      }
+      setOpponentReady(false);
+
+      if (data.isHandicap) {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            sender: 'Hệ Thống',
+            message: '⚡ Trận đấu Chấp Cờ! Quân chấp đã được tự động loại bỏ khỏi bàn cờ theo cấu hình của Chủ phòng.',
+            timestamp: new Date()
+          }
+        ]);
+      }
     };
 
     // Friend Challenge Listeners
@@ -190,6 +233,7 @@ export default function App() {
 
     signalRService.on('MoveMade', handleMoveMade);
     signalRService.on('PlayerJoined', handlePlayerJoined);
+    signalRService.on('PlayerReady', handlePlayerReady);
     signalRService.on('ChatMessageReceived', handleChatMessage);
     signalRService.on('GameEnded', handleGameEnded);
     signalRService.on('DrawOffered', handleDrawOffered);
@@ -205,6 +249,7 @@ export default function App() {
     return () => {
       signalRService.off('MoveMade', handleMoveMade);
       signalRService.off('PlayerJoined', handlePlayerJoined);
+      signalRService.off('PlayerReady', handlePlayerReady);
       signalRService.off('ChatMessageReceived', handleChatMessage);
       signalRService.off('GameEnded', handleGameEnded);
       signalRService.off('DrawOffered', handleDrawOffered);
@@ -231,6 +276,10 @@ export default function App() {
     if (gameMode === 'online') {
       if (onlineRole === 'Observer') return;
       if (gameState.currentTurn !== onlineRole) return;
+      if (gameState?.isHandicap && onlineRole !== 'Red' && !guestHandicapConfirmed) {
+        alert('Vui lòng kiểm tra bàn cờ và bấm nút "Đồng Ý & Sẵn Sàng" phía trên trước khi đánh!');
+        return;
+      }
     }
 
     const clickedPiece = gameState.board[r]?.[c];
@@ -357,11 +406,21 @@ export default function App() {
     }
   };
 
-  const handleCreateOnlineRoom = async (playerName, username, roomName, playAsRed) => {
+  const handleConfirmHandicapReady = async () => {
+    setGuestHandicapConfirmed(true);
+    const myName = currentUser?.displayName || localStorage.getItem('xiangqi_player_name') || blackPlayerName || 'Kỳ Thủ Đen';
     try {
-      const pName = playerName || currentUser?.displayName || 'Kỳ Thủ';
+      await signalRService.setPlayerReady(onlineRoomId, onlineRole, myName);
+    } catch (err) {
+      console.error('Error confirming handicap ready:', err);
+    }
+  };
+
+  const handleCreateOnlineRoom = async (playerName, username, roomName, playAsRed, isHandicap = false, removedPositions = [], isAiGame = false) => {
+    try {
+      const pName = playerName || currentUser?.displayName || localStorage.getItem('xiangqi_player_name') || 'Kỳ Thủ';
       const uName = username || currentUser?.username || null;
-      await signalRService.createRoom(pName, uName, roomName, playAsRed, false);
+      await signalRService.createRoom(pName, uName, roomName, playAsRed, isAiGame, 'Medium', isHandicap, removedPositions);
     } catch (err) {
       alert('Không thể tạo phòng: ' + err.message);
     }
@@ -369,7 +428,7 @@ export default function App() {
 
   const handleJoinOnlineRoom = async (roomId, playerName, username) => {
     try {
-      const pName = playerName || currentUser?.displayName || 'Kỳ Thủ';
+      const pName = playerName || currentUser?.displayName || localStorage.getItem('xiangqi_player_name') || `KỳThủ_${Math.floor(Math.random() * 900 + 100)}`;
       const uName = username || currentUser?.username || null;
       await signalRService.joinRoom(roomId, pName, uName);
     } catch (err) {
@@ -528,7 +587,7 @@ export default function App() {
           onStartAiGame={handleStartAiGame}
           onStartLocalGame={handleStartLocalGame}
           onOpenCreateRoom={() => setIsOnlineModalOpen(true)}
-          onJoinRoom={(roomId) => handleJoinOnlineRoom(roomId)}
+          onJoinRoom={(roomId, pName, uName) => handleJoinOnlineRoom(roomId, pName, uName)}
           onQuickMatch={handleQuickMatch}
           isMuted={isMuted}
           onToggleMute={handleToggleSound}
@@ -649,16 +708,78 @@ export default function App() {
 
           {/* Main Game Arena */}
           <main className="main-content">
-            {/* Left: Xiangqi Board */}
-            <Board
-              gameState={gameState}
-              selectedPos={selectedPos}
-              validMoves={validMoves}
-              lastMove={lastMove}
-              isFlipped={isFlipped}
-              showVietnamese={showVietnamese}
-              onSquareClick={handleSquareClick}
-            />
+            {/* Left: Xiangqi Board Area */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '620px' }}>
+              {/* Opponent Handicap Confirmation Banner */}
+              {gameState?.isHandicap && gameMode === 'online' && onlineRole !== 'Red' && (
+                <div style={{
+                  width: '100%',
+                  marginBottom: '0.75rem',
+                  padding: '0.65rem 1rem',
+                  borderRadius: '10px',
+                  background: guestHandicapConfirmed
+                    ? 'rgba(34, 197, 94, 0.15)'
+                    : 'linear-gradient(135deg, rgba(40, 20, 10, 0.95), rgba(70, 25, 10, 0.95))',
+                  border: guestHandicapConfirmed
+                    ? '1px solid rgba(34, 197, 94, 0.5)'
+                    : '2px solid #eab308',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: guestHandicapConfirmed ? '#86efac' : '#fde047', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span>⚡ {guestHandicapConfirmed ? 'ĐÃ ĐỒNG Ý BÀN CỜ CHẤP' : 'BÀN CỜ CHẤP CỦA CHỦ PHÒNG (READ-ONLY)'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#d1c5b8', marginTop: '2px' }}>
+                      {guestHandicapConfirmed
+                        ? 'Bạn đã sẵn sàng thi đấu. Chúc bạn có trận đấu thú vị!'
+                        : 'Các quân chấp đã được lược bỏ. Xem bàn cờ và nhấn Sẵn Sàng để đánh.'}
+                    </div>
+                  </div>
+                  {!guestHandicapConfirmed && (
+                    <button
+                      onClick={handleConfirmHandicapReady}
+                      className="btn btn-gold"
+                      style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}
+                    >
+                      Đồng Ý & Sẵn Sàng
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Host waiting for opponent readiness notification */}
+              {gameState?.isHandicap && gameMode === 'online' && onlineRole === 'Red' && !opponentReady && (
+                <div style={{
+                  width: '100%',
+                  marginBottom: '0.75rem',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '8px',
+                  background: 'rgba(234, 179, 8, 0.12)',
+                  border: '1px dashed rgba(234, 179, 8, 0.4)',
+                  fontSize: '0.78rem',
+                  color: '#fef08a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span>⚡ Đang chờ đối thủ xem xét bàn cờ chấp và xác nhận Sẵn sàng...</span>
+                </div>
+              )}
+
+              <Board
+                gameState={gameState}
+                selectedPos={selectedPos}
+                validMoves={validMoves}
+                lastMove={lastMove}
+                isFlipped={isFlipped}
+                showVietnamese={showVietnamese}
+                onSquareClick={handleSquareClick}
+              />
+            </div>
 
             {/* Right: Dashboard Controls, Game Info & Moves Log */}
             <aside className="side-panel">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Zap } from 'lucide-react';
 
 const PIECE_VALUES = {
   King: 1000,
@@ -30,6 +30,28 @@ export default function GameInfo({
 
   return (
     <div className="dashboard-card">
+      {/* Handicap Mode Indicator */}
+      {gameState.isHandicap && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.45rem 0.75rem',
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(234, 179, 8, 0.2))',
+            border: '1px solid rgba(239, 68, 68, 0.45)',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            marginBottom: '0.75rem'
+          }}
+        >
+          <Zap size={14} style={{ color: '#fde047' }} />
+          <span>CHẾ ĐỘ CHẤP CỜ (Handicap Match)</span>
+        </div>
+      )}
+
       {/* Turn Banner */}
       <div className="turn-banner">
         <div className="turn-player">

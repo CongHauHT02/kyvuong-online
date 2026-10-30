@@ -4,51 +4,142 @@ namespace XiangqiBackend.Services;
 
 public class XiangqiRulesService
 {
-    public GameState CreateInitialGameState()
+    public static readonly HashSet<Position> StandardBlackPositions =
+    [
+        new(0, 0), new(0, 1), new(0, 2), new(0, 3), new(0, 4), new(0, 5), new(0, 6), new(0, 7), new(0, 8),
+        new(2, 1), new(2, 7),
+        new(3, 0), new(3, 2), new(3, 4), new(3, 6), new(3, 8)
+    ];
+
+    public static readonly HashSet<Position> StandardRedPositions =
+    [
+        new(9, 0), new(9, 1), new(9, 2), new(9, 3), new(9, 4), new(9, 5), new(9, 6), new(9, 7), new(9, 8),
+        new(7, 1), new(7, 7),
+        new(6, 0), new(6, 2), new(6, 4), new(6, 6), new(6, 8)
+    ];
+
+    public static readonly Position BlackKingPosition = new(0, 4);
+    public static readonly Position RedKingPosition = new(9, 4);
+
+    public bool ValidateHandicapConfiguration(IEnumerable<Position>? removedPositions, out string? errorMessage)
+    {
+        errorMessage = null;
+        if (removedPositions == null) return true;
+
+        var list = removedPositions.ToList();
+        if (list.Count == 0) return true;
+
+        if (list.Distinct().Count() != list.Count)
+        {
+            errorMessage = "Danh sách vị trí quân chấp bị trùng lặp.";
+            return false;
+        }
+
+        if (list.Contains(BlackKingPosition))
+        {
+            errorMessage = "Không được phép chấp (xóa) quân Tướng Đen.";
+            return false;
+        }
+
+        if (list.Contains(RedKingPosition))
+        {
+            errorMessage = "Không được phép chấp (xóa) quân Tướng Đỏ.";
+            return false;
+        }
+
+        int blackRemoved = 0;
+        int redRemoved = 0;
+
+        foreach (var pos in list)
+        {
+            if (StandardBlackPositions.Contains(pos))
+            {
+                blackRemoved++;
+            }
+            else if (StandardRedPositions.Contains(pos))
+            {
+                redRemoved++;
+            }
+            else
+            {
+                errorMessage = $"Vị trí ({pos.Row}, {pos.Col}) không thuộc ô quân cờ ban đầu hợp lệ.";
+                return false;
+            }
+        }
+
+        // Each side starts with 16 pieces. Remaining pieces must be >= 2 (King + at least 1 other piece).
+        if (16 - blackRemoved < 2)
+        {
+            errorMessage = "Bên Đen phải còn lại ít nhất quân Tướng và 1 quân khác (tối đa chấp 14 quân).";
+            return false;
+        }
+
+        if (16 - redRemoved < 2)
+        {
+            errorMessage = "Bên Đỏ phải còn lại ít nhất quân Tướng và 1 quân khác (tối đa chấp 14 quân).";
+            return false;
+        }
+
+        return true;
+    }
+
+    public GameState CreateInitialGameState(IEnumerable<Position>? removedPositions = null, bool isHandicap = false)
     {
         var state = new GameState();
         var board = state.Board;
+        var removedSet = removedPositions != null ? new HashSet<Position>(removedPositions) : [];
+
+        void Place(int r, int c, string id, PieceType type, PieceColor color)
+        {
+            var pos = new Position(r, c);
+            if (!removedSet.Contains(pos))
+            {
+                board[r][c] = CreatePiece(id, type, color);
+            }
+        }
 
         // Black Pieces (Row 0 - 3)
-        board[0][0] = CreatePiece("b_r_1", PieceType.Rook, PieceColor.Black);
-        board[0][1] = CreatePiece("b_n_1", PieceType.Horse, PieceColor.Black);
-        board[0][2] = CreatePiece("b_b_1", PieceType.Elephant, PieceColor.Black);
-        board[0][3] = CreatePiece("b_a_1", PieceType.Advisor, PieceColor.Black);
-        board[0][4] = CreatePiece("b_k", PieceType.King, PieceColor.Black);
-        board[0][5] = CreatePiece("b_a_2", PieceType.Advisor, PieceColor.Black);
-        board[0][6] = CreatePiece("b_b_2", PieceType.Elephant, PieceColor.Black);
-        board[0][7] = CreatePiece("b_n_2", PieceType.Horse, PieceColor.Black);
-        board[0][8] = CreatePiece("b_r_2", PieceType.Rook, PieceColor.Black);
+        Place(0, 0, "b_r_1", PieceType.Rook, PieceColor.Black);
+        Place(0, 1, "b_n_1", PieceType.Horse, PieceColor.Black);
+        Place(0, 2, "b_b_1", PieceType.Elephant, PieceColor.Black);
+        Place(0, 3, "b_a_1", PieceType.Advisor, PieceColor.Black);
+        Place(0, 4, "b_k", PieceType.King, PieceColor.Black);
+        Place(0, 5, "b_a_2", PieceType.Advisor, PieceColor.Black);
+        Place(0, 6, "b_b_2", PieceType.Elephant, PieceColor.Black);
+        Place(0, 7, "b_n_2", PieceType.Horse, PieceColor.Black);
+        Place(0, 8, "b_r_2", PieceType.Rook, PieceColor.Black);
 
-        board[2][1] = CreatePiece("b_c_1", PieceType.Cannon, PieceColor.Black);
-        board[2][7] = CreatePiece("b_c_2", PieceType.Cannon, PieceColor.Black);
+        Place(2, 1, "b_c_1", PieceType.Cannon, PieceColor.Black);
+        Place(2, 7, "b_c_2", PieceType.Cannon, PieceColor.Black);
 
-        board[3][0] = CreatePiece("b_p_1", PieceType.Pawn, PieceColor.Black);
-        board[3][2] = CreatePiece("b_p_2", PieceType.Pawn, PieceColor.Black);
-        board[3][4] = CreatePiece("b_p_3", PieceType.Pawn, PieceColor.Black);
-        board[3][6] = CreatePiece("b_p_4", PieceType.Pawn, PieceColor.Black);
-        board[3][8] = CreatePiece("b_p_5", PieceType.Pawn, PieceColor.Black);
+        Place(3, 0, "b_p_1", PieceType.Pawn, PieceColor.Black);
+        Place(3, 2, "b_p_2", PieceType.Pawn, PieceColor.Black);
+        Place(3, 4, "b_p_3", PieceType.Pawn, PieceColor.Black);
+        Place(3, 6, "b_p_4", PieceType.Pawn, PieceColor.Black);
+        Place(3, 8, "b_p_5", PieceType.Pawn, PieceColor.Black);
 
         // Red Pieces (Row 6 - 9)
-        board[9][0] = CreatePiece("r_r_1", PieceType.Rook, PieceColor.Red);
-        board[9][1] = CreatePiece("r_n_1", PieceType.Horse, PieceColor.Red);
-        board[9][2] = CreatePiece("r_b_1", PieceType.Elephant, PieceColor.Red);
-        board[9][3] = CreatePiece("r_a_1", PieceType.Advisor, PieceColor.Red);
-        board[9][4] = CreatePiece("r_k", PieceType.King, PieceColor.Red);
-        board[9][5] = CreatePiece("r_a_2", PieceType.Advisor, PieceColor.Red);
-        board[9][6] = CreatePiece("r_b_2", PieceType.Elephant, PieceColor.Red);
-        board[9][7] = CreatePiece("r_n_2", PieceType.Horse, PieceColor.Red);
-        board[9][8] = CreatePiece("r_r_2", PieceType.Rook, PieceColor.Red);
+        Place(9, 0, "r_r_1", PieceType.Rook, PieceColor.Red);
+        Place(9, 1, "r_n_1", PieceType.Horse, PieceColor.Red);
+        Place(9, 2, "r_b_1", PieceType.Elephant, PieceColor.Red);
+        Place(9, 3, "r_a_1", PieceType.Advisor, PieceColor.Red);
+        Place(9, 4, "r_k", PieceType.King, PieceColor.Red);
+        Place(9, 5, "r_a_2", PieceType.Advisor, PieceColor.Red);
+        Place(9, 6, "r_b_2", PieceType.Elephant, PieceColor.Red);
+        Place(9, 7, "r_n_2", PieceType.Horse, PieceColor.Red);
+        Place(9, 8, "r_r_2", PieceType.Rook, PieceColor.Red);
 
-        board[7][1] = CreatePiece("r_c_1", PieceType.Cannon, PieceColor.Red);
-        board[7][7] = CreatePiece("r_c_2", PieceType.Cannon, PieceColor.Red);
+        Place(7, 1, "r_c_1", PieceType.Cannon, PieceColor.Red);
+        Place(7, 7, "r_c_2", PieceType.Cannon, PieceColor.Red);
 
-        board[6][0] = CreatePiece("r_p_1", PieceType.Pawn, PieceColor.Red);
-        board[6][2] = CreatePiece("r_p_2", PieceType.Pawn, PieceColor.Red);
-        board[6][4] = CreatePiece("r_p_3", PieceType.Pawn, PieceColor.Red);
-        board[6][6] = CreatePiece("r_p_4", PieceType.Pawn, PieceColor.Red);
-        board[6][8] = CreatePiece("r_p_5", PieceType.Pawn, PieceColor.Red);
+        Place(6, 0, "r_p_1", PieceType.Pawn, PieceColor.Red);
+        Place(6, 2, "r_p_2", PieceType.Pawn, PieceColor.Red);
+        Place(6, 4, "r_p_3", PieceType.Pawn, PieceColor.Red);
+        Place(6, 6, "r_p_4", PieceType.Pawn, PieceColor.Red);
+        Place(6, 8, "r_p_5", PieceType.Pawn, PieceColor.Red);
 
+        state.IsHandicap = isHandicap;
+        state.RemovedPositions = removedSet.ToList();
         state.CurrentTurn = PieceColor.Red;
         state.Status = GameStatus.Ongoing;
         UpdateCheckStatus(state);

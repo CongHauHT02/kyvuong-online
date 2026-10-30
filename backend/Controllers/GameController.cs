@@ -59,7 +59,24 @@ public class GameController(
     [HttpPost("rooms")]
     public ActionResult<GameRoom> CreateRoom([FromBody] CreateRoomRequest req)
     {
-        var room = roomManager.CreateRoom(req.PlayerName, req.Username, req.RoomName, req.PlayAsRed, req.IsAiGame, req.AiDifficulty);
+        if (req.IsHandicap && req.RemovedPositions != null)
+        {
+            if (!rulesService.ValidateHandicapConfiguration(req.RemovedPositions, out var error))
+            {
+                return BadRequest(new { Message = error });
+            }
+        }
+
+        var room = roomManager.CreateRoom(
+            req.PlayerName,
+            req.Username,
+            req.RoomName,
+            req.PlayAsRed,
+            req.IsAiGame,
+            req.AiDifficulty,
+            req.IsHandicap,
+            req.RemovedPositions
+        );
         return Ok(room);
     }
 

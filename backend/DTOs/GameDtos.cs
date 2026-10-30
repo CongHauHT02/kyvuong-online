@@ -17,6 +17,8 @@ public class CreateRoomRequest
     public bool PlayAsRed { get; set; } = true;
     public bool IsAiGame { get; set; }
     public string AiDifficulty { get; set; } = "Medium";
+    public bool IsHandicap { get; set; }
+    public List<Position>? RemovedPositions { get; set; }
 }
 
 public class JoinRoomRequest
@@ -43,5 +45,6 @@ public record RoomSummaryDto(
     bool HasBlackPlayer,
     int ObserversCount,
     GameStatus Status,
-    PieceColor CurrentTurn
+    PieceColor CurrentTurn,
+    bool IsHandicap = false
 );

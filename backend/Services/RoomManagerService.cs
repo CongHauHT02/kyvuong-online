@@ -8,10 +8,18 @@ public class RoomManagerService(XiangqiRulesService rulesService)
 {
     private readonly ConcurrentDictionary<string, GameRoom> _rooms = new();
 
-    public GameRoom CreateRoom(string playerName, string? username, string? roomName, bool playAsRed = true, bool isAiGame = false, string aiDifficulty = "Medium")
+    public GameRoom CreateRoom(
+        string playerName,
+        string? username,
+        string? roomName,
+        bool playAsRed = true,
+        bool isAiGame = false,
+        string aiDifficulty = "Medium",
+        bool isHandicap = false,
+        List<Position>? removedPositions = null)
     {
         var roomId = GenerateRoomCode();
-        var initialGame = rulesService.CreateInitialGameState();
+        var initialGame = rulesService.CreateInitialGameState(removedPositions, isHandicap);
 
         var room = new GameRoom
         {
@@ -19,7 +27,9 @@ public class RoomManagerService(XiangqiRulesService rulesService)
             RoomName = string.IsNullOrWhiteSpace(roomName) ? $"Phòng #{roomId}" : roomName.Trim(),
             GameState = initialGame,
             IsAiGame = isAiGame,
-            AiDifficulty = aiDifficulty
+            AiDifficulty = aiDifficulty,
+            IsHandicap = isHandicap,
+            HandicapRemovedPositions = removedPositions ?? []
         };
 
         if (playAsRed)
@@ -112,7 +122,8 @@ public class RoomManagerService(XiangqiRulesService rulesService)
                 !string.IsNullOrEmpty(r.BlackPlayerConnectionId),
                 r.Observers.Count,
                 r.GameState.Status,
-                r.GameState.CurrentTurn
+                r.GameState.CurrentTurn,
+                r.IsHandicap
             ))
             .ToList();
     }
@@ -121,7 +132,10 @@ public class RoomManagerService(XiangqiRulesService rulesService)
     {
         lock (room)
         {
-            room.GameState = rulesService.CreateInitialGameState();
+            room.GameState = rulesService.CreateInitialGameState(
+                room.IsHandicap ? room.HandicapRemovedPositions : null,
+                room.IsHandicap
+            );
             room.LastActivityAt = DateTime.UtcNow;
         }
     }

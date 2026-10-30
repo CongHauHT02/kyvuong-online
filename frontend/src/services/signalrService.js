@@ -133,14 +133,16 @@ class SignalRService {
     }
   }
 
-  async createRoom(playerName, username, roomName, playAsRed = true, isAiGame = false, aiDifficulty = 'Medium') {
+  async createRoom(playerName, username, roomName, playAsRed = true, isAiGame = false, aiDifficulty = 'Medium', isHandicap = false, removedPositions = []) {
     return this.safeInvoke('CreateRoom', {
       playerName,
       username,
       roomName,
       playAsRed,
       isAiGame,
-      aiDifficulty
+      aiDifficulty,
+      isHandicap,
+      removedPositions
     });
   }
 
@@ -174,6 +176,10 @@ class SignalRService {
 
   async requestRematch(roomId) {
     return this.safeInvoke('RequestRematch', roomId);
+  }
+
+  async setPlayerReady(roomId, role, playerName) {
+    return this.safeInvoke('SetPlayerReady', roomId, role, playerName);
   }
 
   async registerUser(username, displayName) {

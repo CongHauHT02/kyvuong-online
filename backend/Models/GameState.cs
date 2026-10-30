@@ -12,6 +12,8 @@ public class GameState
     public List<Piece> CapturedRedPieces { get; set; } = []; // Red pieces captured by Black
     public List<Piece> CapturedBlackPieces { get; set; } = []; // Black pieces captured by Red
     public int FullmoveNumber { get; set; } = 1;
+    public bool IsHandicap { get; set; }
+    public List<Position> RemovedPositions { get; set; } = [];
 
     public GameState()
     {
@@ -31,6 +33,8 @@ public class GameState
             InCheck = InCheck,
             InCheckKingPos = InCheckKingPos,
             FullmoveNumber = FullmoveNumber,
+            IsHandicap = IsHandicap,
+            RemovedPositions = new List<Position>(RemovedPositions),
             MoveHistory = new List<Move>(MoveHistory),
             CapturedRedPieces = new List<Piece>(CapturedRedPieces),
             CapturedBlackPieces = new List<Piece>(CapturedBlackPieces)
