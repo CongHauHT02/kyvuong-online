@@ -1,7 +1,12 @@
 // REST API client for Xiangqi .NET 9.0 Backend
 
-const API_BASE = '/api/game';
-const AUTH_BASE = '/api/auth';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+  ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
+  : '';
+
+const API_BASE = `${BACKEND_URL}/api/game`;
+const AUTH_BASE = `${BACKEND_URL}/api/auth`;
+const FRIEND_BASE = `${BACKEND_URL}/api/friend`;
 
 function getAuthHeaders() {
   const headers = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -120,19 +125,19 @@ export const apiService = {
 
   // Friend Endpoints
   async getFriends() {
-    const res = await fetch('/api/friend/list', { headers: getAuthHeaders() });
+    const res = await fetch(`${FRIEND_BASE}/list`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Không thể tải danh sách bạn bè');
     return res.json();
   },
 
   async getFriendRequests() {
-    const res = await fetch('/api/friend/requests', { headers: getAuthHeaders() });
+    const res = await fetch(`${FRIEND_BASE}/requests`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Không thể tải lời mời kết bạn');
     return res.json();
   },
 
   async sendFriendRequest(targetUsername) {
-    const res = await fetch('/api/friend/request', {
+    const res = await fetch(`${FRIEND_BASE}/request`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ targetUsername })
@@ -145,7 +150,7 @@ export const apiService = {
   },
 
   async acceptFriendRequest(requestId) {
-    const res = await fetch(`/api/friend/accept/${requestId}`, {
+    const res = await fetch(`${FRIEND_BASE}/accept/${requestId}`, {
       method: 'POST',
       headers: getAuthHeaders()
     });
@@ -157,7 +162,7 @@ export const apiService = {
   },
 
   async rejectFriendRequest(requestId) {
-    const res = await fetch(`/api/friend/reject/${requestId}`, {
+    const res = await fetch(`${FRIEND_BASE}/reject/${requestId}`, {
       method: 'POST',
       headers: getAuthHeaders()
     });
@@ -169,7 +174,7 @@ export const apiService = {
   },
 
   async removeFriend(targetUserId) {
-    const res = await fetch(`/api/friend/${targetUserId}`, {
+    const res = await fetch(`${FRIEND_BASE}/${targetUserId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
